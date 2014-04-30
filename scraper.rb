@@ -13,6 +13,9 @@ def find_element_by_css(target_css)
 	end
 end
 
+BEGIN_INDEX = 89484
+END_INDEX = 89493
+
 # get connectifier password at program call
 if ARGV.length != 1
 	puts "please enter connectifier password as argument"
@@ -48,7 +51,7 @@ sleep(3)
 
 # ...and we're in!
 
-(1..3).each do |i|
+(BEGIN_INDEX..END_INDEX).each do |i|
 	
 	# conditions:
 	# 1. must be in San Francisco or CA
@@ -58,9 +61,14 @@ sleep(3)
 		# load the next user profile
 		$driver.navigate.to "http://stackoverflow.com/users/" + i.to_s
 		
+		# make sure they exist
+		if find_element_by_css "img[alt='page not found']"
+			raise "no user present"
+		end
+		
 		# 1. must be in San Francisco or CA
 		location_element = find_element_by_css "td.adr"
-		if location_element.text.match(/San Francisco/i) || location_element.text.match(/Ca/i)
+		if location_element.text.match(/San Francisco/i) || location_element.text.match(/CA/) || location_element.text.match(/California/i)
 			puts "valid location"
 		else
 			raise "out of area"
