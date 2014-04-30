@@ -1,8 +1,24 @@
 require "selenium-webdriver"
 
 def wait_for_element_by_css(target_css)
-	wait = Selenium::WebDriver::Wait.new(:timeout => 3) # seconds
-	wait.until { $driver.find_element(:css => target_css) }
+	wait = Selenium::WebDriver::Wait.new(:timeout => 2) # seconds
+	wait.until { find_element_by_css(target_css) }
+end
+
+def find_element_by_css(target_css)
+	begin
+		$driver.find_element(:css => target_css)
+	rescue
+		false
+	end
+end
+
+# get connectifier password at program call
+if ARGV.length != 1
+	puts "please enter connectifier password as argument"
+	exit
+else
+	password = ARGV[0]
 end
 
 # load connectifier extension
@@ -15,21 +31,17 @@ $driver.navigate.to "http://stackoverflow.com/users/1"
 $driver.navigate.refresh
 
 # wait for panel to load and switch focus
-wait_for_element_by_css "#c-side"
-$driver.switch_to.frame($driver.find_element(:css => "iframe"))
+wait_for_element_by_css "#c-side-close-div"
+$driver.switch_to.frame(find_element_by_css("iframe"))
 
 # enter email
-$driver.find_element(:id => "email").send_keys("colin@rockitrecruiting.com")
-$driver.find_element(:class => "fa-sign-in").click
+find_element_by_css("#email").send_keys("colin@rockitrecruiting.com")
+find_element_by_css(".fa-sign-in").click
 wait_for_element_by_css "#password"
 
-# get password from console
-print "Connectifier password: "
-password = gets
-
 # submit password
-$driver.find_element(:id => "password").send_keys(password)
-$driver.find_element(:class => "fa-sign-in").click
+find_element_by_css("#password").send_keys(password)
+find_element_by_css(".fa-sign-in").click
 
 # wait to let the login info sink in
 sleep(3)
@@ -38,17 +50,60 @@ sleep(3)
 
 (1..3).each do |i|
 	
-	# load the next user profile
-	$driver.navigate.to "http://stackoverflow.com/users/" + i.to_s
+	# conditions:
+	# 1. must be in San Francisco or CA
+	# 2. must have linkedin
+	# 3. must have email or phone number
+	begin
+		# load the next user profile
+		$driver.navigate.to "http://stackoverflow.com/users/" + i.to_s
+		
+		# 1. must be in San Francisco or CA
+		location_element = find_element_by_css "td.adr"
+		if location_element.text.match(/San Francisco/i) || location_element.text.match(/Ca/i)
+			puts "valid location"
+		else
+			raise "out of area"
+		end
 
-	# wait for connectifier to load
-	wait_for_element_by_css "div#c-side"
-	$driver.switch_to.frame($driver.find_element(:css => "iframe"))
-
-	# need to find a better element to wait for..
-	wait_for_element_by_css "span.personName"
-
-	# check for email / phone and linkedin (skip if both not present)
+		# wait for connectifier to load and switch to its frame
+		wait_for_element_by_css "div#c-side-close-div"
+		$driver.switch_to.frame(find_element_by_css("iframe"))
+		
+		# wait for connectifier content to load
+		wait_for_element_by_css "a#add-note"
+		
+		# 2. must have linkedin
+		if linkedin_link = find_element_by_css("a[title='LinkedIn profile']")
+			linkedin_url = linkedin_link.attribute("href")
+			puts "linkedin_url: " + linkedin_url
+		else
+			raise "no linkedin"
+		end
+		
+		# 3. must have email or phone number
+		contact_info_present = false
+		if email_link = find_element_by_css("a.email")
+			email_address = email_link.text
+			puts "email: " + email_address
+			contact_info_present = true
+		end
+		
+		if phone_show_btn = find_element_by_css("img.show-button")
+			phone_show_btn.click
+			phone_number = find_element_by_css("a.phone").text
+			puts phone_number
+			contact_info_present = true
+		end
+		
+		if !contact_info_present
+			raise "no contact info"
+		end
+		
+	rescue Exception => e
+		puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
+	end
+	
 	# download contact info
 
 	# navigate to linkedin profile
