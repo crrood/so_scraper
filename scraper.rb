@@ -1,5 +1,6 @@
 require "selenium-webdriver"
 
+# INTERNAL METHODS
 def wait_for_element_by_css(target_css)
 	wait = Selenium::WebDriver::Wait.new(:timeout => 2) # seconds
 	wait.until { find_element_by_css(target_css) }
@@ -13,9 +14,11 @@ def find_element_by_css(target_css)
 	end
 end
 
-BEGIN_INDEX = 89484
-END_INDEX = 89493
+# CONSTANTS
+BEGIN_INDEX = 76486
+END_INDEX = 76487
 
+# MAIN PROGRAM
 # get connectifier password at program call
 if ARGV.length != 2
 	puts "please enter connectifier and linkedin passwords as argument"
@@ -54,11 +57,13 @@ wait_for_element_by_css "#password"
 # submit password
 find_element_by_css("#password").send_keys(cf_password)
 find_element_by_css(".fa-sign-in").click
-
-# wait to let the login info sink in
 sleep(3)
 
 # ...and we're in!
+
+# open and prep a File for output
+output_csv = File.new("output.csv", "w+")
+output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhone,OtherPhone,Fax,Country,Address1,Address2,City,State,Zip,LinkedInUrl,ResumeText\n")
 
 (BEGIN_INDEX..END_INDEX).each do |i|
 
@@ -110,6 +115,9 @@ sleep(3)
 			phone_show_btn.click
 			candidate_info["phone"] = find_element_by_css("a.phone").text
 			contact_info_present = true
+		else
+			# for easier serialization on output to .csv format
+			candidate_info["phone"] = ""
 		end
 		
 		if !contact_info_present
@@ -132,12 +140,18 @@ sleep(3)
 
 		# wait for the body to load and pull it
 		wait_for_element_by_css "div.content"
-		candidate_info["resume_text"] = find_element_by_css("div.content").text
+		candidate_info["resume_text"] = '"' + find_element_by_css("div.content").text + '"'
 
-		# NEXT STEP
-		# put into Compas-recognized .csv format
+		# output in Compas-recognized .csv format
+		output_csv.write(candidate_info["first_name"] + "," +
+			candidate_info["last_name"] + "," +
+			candidate_info["email"] + ",,,," +
+			candidate_info["phone"] + ",,,,,,,,," + 
+			candidate_info["linkedin_url"] + "," +
+			candidate_info["resume_text"] + "\n")
 
 	rescue Exception => e
+		# output error with name lifted from URL
 		puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
 	end
 
