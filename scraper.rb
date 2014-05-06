@@ -14,10 +14,6 @@ def find_element_by_css(target_css)
 	end
 end
 
-# CONSTANTS
-BEGIN_INDEX = 76486
-END_INDEX = 76487
-
 # MAIN PROGRAM
 # get connectifier password at program call
 if ARGV.length != 2
@@ -61,6 +57,10 @@ sleep(3)
 
 # ...and we're in!
 
+# open the list of qualified Id's
+input_csv = File.new("qualified_ids.csv", "r")
+# TODO read from this list instead of iterating through profiles 1 by 1
+
 # open and prep a File for output
 output_csv = File.new("output.csv", "w+")
 output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhone,OtherPhone,Fax,Country,Address1,Address2,City,State,Zip,LinkedInUrl,ResumeText\n")
@@ -82,10 +82,10 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 			raise "no user present"
 		end
 		
-		# 1. must be in San Francisco or CA
+		# 1. must be in CA
 		location_element = find_element_by_css "td.adr"
 		if location_element.text.match(/San Francisco/i) || location_element.text.match(/CA/) || location_element.text.match(/California/i)
-			candidate_info["location"] = location_element.text
+			candidate_info["location"] = location_element.text.gsub(",", "")
 		else
 			raise "out of area"
 		end
@@ -104,24 +104,20 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 			raise "no linkedin"
 		end
 		
-		# 3. must have email or phone number
-		contact_info_present = false
+		# 3. must have email (phone number optional)
 		if email_link = find_element_by_css("a.email")
 			candidate_info["email"] = email_link.text
-			contact_info_present = true
+		else
+			raise "no email address"
 		end
 		
 		if phone_show_btn = find_element_by_css("img.show-button")
 			phone_show_btn.click
+			sleep(1)
 			candidate_info["phone"] = find_element_by_css("a.phone").text
-			contact_info_present = true
 		else
 			# for easier serialization on output to .csv format
 			candidate_info["phone"] = ""
-		end
-		
-		if !contact_info_present
-			raise "no contact info"
 		end
 		
 		# get first and last name
@@ -146,13 +142,19 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 		output_csv.write(candidate_info["first_name"] + "," +
 			candidate_info["last_name"] + "," +
 			candidate_info["email"] + ",,,," +
-			candidate_info["phone"] + ",,,,,,,,," + 
+			candidate_info["phone"] + ",,,,,," +
+			candidate_info["location"] + ",,," +
 			candidate_info["linkedin_url"] + "," +
 			candidate_info["resume_text"] + "\n")
 
 	rescue Exception => e
-		# output error with name lifted from URL
-		puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
+		if(candidate_info["first_name"] != nil)
+			# output name and error
+			puts candidate_info["first_name"] + ": " + e.to_s
+		else
+			# lift name from URL and output with error
+			puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
+		end
 	end
 
 end
