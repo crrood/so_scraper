@@ -14,9 +14,17 @@ def find_element_by_css(target_css)
 	end
 end
 
+def find_elements_by_css(target_css)
+	begin
+		$driver.find_elements(:css => target_css)
+	rescue
+		false
+	end
+end
+
 # CONSTANTS
-START_INDEX = 0
-ITERATIONS = 3
+START_INDEX = 1
+ITERATIONS = 1
 
 # MAIN PROGRAM
 # get connectifier password at program call
@@ -105,7 +113,7 @@ ITERATIONS.times do
 		
 		# wait for connectifier content to load
 		wait_for_element_by_css "a#add-note"
-		
+
 		# get first and last name
 		name_array = find_element_by_css("span.personName").text.split
 		candidate_info["first_name"] = name_array[0]
@@ -121,12 +129,36 @@ ITERATIONS.times do
 		end
 		
 		# 3. must have email (phone number optional)
-		if email_link = find_element_by_css("a.email")
-			candidate_info["email"] = email_link.text
+		if email_list = find_elements_by_css("a.email")
+			
+			# check for personal (not company) address
+			personal_addresses = email_list.select {|e| e.text =~ /gmail|yahoo|hotmail/}
+			candidate_info["email2"] = ""
+
+			if (personal_addresses.length == 0)
+
+				# company address is better than nothing
+				candidate_info["email"] = email_list[0].text
+				
+				# ...and two company addresses are better than one!
+				if (email_list.length > 1)
+					candidate_info["email2"] = email_list[1].text
+				end
+
+			elsif (personal_addresses.length == 1)
+				# just one personal address
+				candidate_info["email"] = personal_addresses[0].text
+			else
+				# two personal adresses
+				candidate_info["email"] = personal_addresses[0].text
+				candidate_info["email2"] = personal_addresses[1].text
+			end
+
 		else
 			raise "no email address"
 		end
 		
+		# check for phone number
 		if phone_show_btn = find_element_by_css("img.show-button")
 			phone_show_btn.click
 			sleep(1)
@@ -150,7 +182,8 @@ ITERATIONS.times do
 		# output in Compas-recognized .csv format
 		output_csv.write(candidate_info["first_name"] + "," +
 			candidate_info["last_name"] + "," +
-			candidate_info["email"] + ",,,," +
+			candidate_info["email"] + "," +
+			candidate_info["email2"] + ",,," +
 			candidate_info["phone"] + ",,,,,," +
 			candidate_info["location"] + ",,," +
 			candidate_info["linkedin_url"] + "," +
