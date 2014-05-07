@@ -14,6 +14,10 @@ def find_element_by_css(target_css)
 	end
 end
 
+# CONSTANTS
+START_INDEX = 0
+ITERATIONS = 3
+
 # MAIN PROGRAM
 # get connectifier password at program call
 if ARGV.length != 2
@@ -57,15 +61,20 @@ sleep(3)
 
 # ...and we're in!
 
-# open the list of qualified Id's
-input_csv = File.new("qualified_ids.csv", "r")
-# TODO read from this list instead of iterating through profiles 1 by 1
-
 # open and prep a File for output
 output_csv = File.new("output.csv", "w+")
 output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhone,OtherPhone,Fax,Country,Address1,Address2,City,State,Zip,LinkedInUrl,ResumeText\n")
 
-(BEGIN_INDEX..END_INDEX).each do |i|
+# open the list of qualified Id's
+input_csv = File.new("qualified_ids.csv", "r")
+
+# skip to starting id
+# to allow data to be taken in multiple runs
+START_INDEX.times do
+	input_csv.gets
+end
+
+ITERATIONS.times do
 
 	candidate_info = {}
 	
@@ -75,7 +84,7 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 	# 3. must have email or phone number
 	begin
 		# load the next user profile
-		$driver.navigate.to "http://stackoverflow.com/users/" + i.to_s
+		$driver.navigate.to "http://stackoverflow.com/users/" + input_csv.gets
 		
 		# make sure they exist
 		if find_element_by_css "img[alt='page not found']"
@@ -96,6 +105,13 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 		
 		# wait for connectifier content to load
 		wait_for_element_by_css "a#add-note"
+		
+		# get first and last name
+		name_array = find_element_by_css("span.personName").text.split
+		candidate_info["first_name"] = name_array[0]
+		if name_array.length > 1
+			candidate_info["last_name"] = name_array[1]
+		end
 		
 		# 2. must have linkedin
 		if linkedin_link = find_element_by_css("a[title='LinkedIn profile']")
@@ -118,13 +134,6 @@ output_csv.write("FirstName,LastName,Email,Email2,WorkPhone,HomePhone,MobilePhon
 		else
 			# for easier serialization on output to .csv format
 			candidate_info["phone"] = ""
-		end
-		
-		# get first and last name
-		name_array = find_element_by_css("span.personName").text.split
-		candidate_info["first_name"] = name_array[0]
-		if name_array.length > 1
-			candidate_info["last_name"] = name_array[1]
 		end
 
 		# load linkedin profile
