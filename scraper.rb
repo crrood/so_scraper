@@ -37,8 +37,10 @@ else
 end
 
 # load connectifier extension
+# path needs to be modified to current user
+USER_NAME = "Colin Rood"
 caps = Selenium::WebDriver::Remote::Capabilities.chrome("chromeOptions" => 
-	{ "args" => [ "load-extension=C:/Users/RockIT/AppData/Local/Google/Chrome/User Data/Default/Extensions/mbbpjgnlpelaafnnigciegfpelchjldl/0.6.5_0"]})
+	{ "args" => [ "load-extension=C:/Users/" + USER_NAME + "/AppData/Local/Google/Chrome/User Data/Default/Extensions/mbbpjgnlpelaafnnigciegfpelchjldl/0.6.5_0"]})
 $driver = Selenium::WebDriver.for :chrome, desired_capabilities: caps
 
 # first things first, sign into linkedin
@@ -92,7 +94,8 @@ ITERATIONS.times do
 	# 3. must have email or phone number
 	begin
 		# load the next user profile
-		$driver.navigate.to "http://stackoverflow.com/users/" + input_csv.gets
+		so_id = input_csv.gets
+		$driver.navigate.to "http://stackoverflow.com/users/" + so_id
 		
 		# make sure they exist
 		if find_element_by_css "img[alt='page not found']"
@@ -126,6 +129,13 @@ ITERATIONS.times do
 			candidate_info["linkedin_url"] = linkedin_link.attribute("href")
 		else
 			raise "no linkedin"
+		end
+
+		# reveal their contact info
+		if show_btns = find_elements_by_css("img.show-button")
+			show_btns.map { |btn| btn.click }
+		else
+			raise "no contact info"
 		end
 		
 		# 3. must have email (phone number optional)
@@ -198,5 +208,8 @@ ITERATIONS.times do
 			puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
 		end
 	end
+
+	puts "final index: " + (START_INDEX + ITERATIONS).to_s
+	puts "final id: " + so_id.to_s
 
 end
