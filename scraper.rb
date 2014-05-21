@@ -49,10 +49,10 @@ else
 end
 
 # output all the constants to make sure everything's gravy
-puts "START_INDEX: " + START_INDEX
-puts "ITERATIONS: " + ITERATIONS
-puts "USER_NAME: " + USER_NAME
-puts "LOGIN_EMAIL: " + LOGIN_EMAIL
+puts "START_INDEX: " + START_INDEX.to_s
+puts "ITERATIONS: " + ITERATIONS.to_s
+puts "USER_NAME: " + USER_NAME.to_s
+puts "LOGIN_EMAIL: " + LOGIN_EMAIL.to_s
 
 # load connectifier extension
 caps = Selenium::WebDriver::Remote::Capabilities.chrome("chromeOptions" => 
