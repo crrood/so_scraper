@@ -27,15 +27,15 @@ def sleep_for_interval(min, max)
 	min = min * 60
 	max = max * 60
 	sleep_seconds = rand(min..max)
-	puts "sleep for " + sleep_seconds + " seconds at " + Time.now.strftime("%T")
+	puts "sleep for " + sleep_seconds.to_s + " seconds at " + Time.now.strftime("%T")
 	puts "..."
 	sleep(sleep_seconds)
 end
 
 # CONSTANTS
-START_INDEX = 24
+START_INDEX = 60
 ITERATIONS = 10
-USER_NAME = "Colin Rood"
+USER_NAME = "RockIT"
 LOGIN_EMAIL = "colin@rockitrecruiting.com"
 
 # MAIN PROGRAM
@@ -100,6 +100,8 @@ input_csv = File.new("qualified_ids.csv", "r")
 	input_csv.gets
 end
 
+profiles_saved = 0
+
 ITERATIONS.times do
 
 	candidate_info = {}
@@ -111,7 +113,7 @@ ITERATIONS.times do
 	begin
 		# load the next user profile
 		so_id = input_csv.gets
-		puts "read user " + so_id
+		puts "read user " + so_id.to_s
 		$driver.navigate.to "http://stackoverflow.com/users/" + so_id
 		
 		# make sure they exist
@@ -216,6 +218,7 @@ ITERATIONS.times do
 			candidate_info["linkedin_url"] + "," +
 			candidate_info["resume_text"] + "\n")
 
+		profiles_saved += 1
 		puts candidate_info["first_name"] + " saved"
 		sleep_for_interval(10, 35)
 
@@ -234,3 +237,5 @@ ITERATIONS.times do
 end
 
 puts "final index: " + (START_INDEX + ITERATIONS - 1).to_s
+puts "profiles saved: " + profiles_saved.to_s
+puts "profiles skipped: " + (ITERATIONS - profiles_saved).to_s
