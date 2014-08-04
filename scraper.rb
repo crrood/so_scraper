@@ -33,19 +33,33 @@ def sleep_for_interval(min, max)
 end
 
 # CONSTANTS
-START_INDEX = 60
+START_INDEX = 180
 ITERATIONS = 10
-USER_NAME = "RockIT"
+USER_NAME = "RockIT" # points to c:/users/[USER_NAME]/...
 LOGIN_EMAIL = "colin@rockitrecruiting.com"
 
 # MAIN PROGRAM
 # get connectifier password at program call
-if ARGV.length != 2
+if ARGV.length < 2
 	puts "please enter connectifier and linkedin passwords as argument"
 	exit
 else
 	cf_password = ARGV[0]
 	li_password = ARGV[1]
+end
+
+# supplying "false" as 3rd argument will disable pausing
+if ARGV.length == 3
+	if ARGV[2].to_s == "false"
+		PAUSE = false
+	end
+else
+	PAUSE = true
+end
+
+if ARGV.length > 3
+	puts "too many arguments"
+	exit
 end
 
 # output all the constants to make sure everything's gravy
@@ -76,12 +90,12 @@ wait_for_element_by_css "#c-side-close-div"
 $driver.switch_to.frame(find_element_by_css("iframe"))
 
 # enter email
-find_element_by_css("#email").send_keys(LOGIN_EMAIL)
+find_element_by_css("[name=email]").send_keys(LOGIN_EMAIL)
 find_element_by_css(".fa-sign-in").click
 wait_for_element_by_css "#password"
 
 # submit password
-find_element_by_css("#password").send_keys(cf_password)
+find_element_by_css("[name=password]").send_keys(cf_password)
 find_element_by_css(".fa-sign-in").click
 wait_for_element_by_css "span.personName"
 
@@ -135,7 +149,7 @@ ITERATIONS.times do
 		
 		# wait for connectifier content to load
 		wait_for_element_by_css "a#add-note"
-		sleep(10)
+		sleep(3)
 
 		# get first and last name
 		name_array = find_element_by_css("span.personName").text.split
@@ -154,13 +168,14 @@ ITERATIONS.times do
 		# reveal their contact info
 		if show_btns = find_elements_by_css("img.show-button")
 			show_btns.map { |btn| btn.click }
-			sleep(5)
+			sleep(2)
 		else
 			raise "no contact info"
 		end
 		
 		# 3. must have email (phone number optional)
-		if email_list = find_elements_by_css("a.email")
+		email_list = find_elements_by_css("a.email")
+		if email_list.length > 0
 			
 			# check for personal (not company) address
 			personal_addresses = email_list.select {|e| e.text =~ /gmail|yahoo|hotmail/}
@@ -205,8 +220,8 @@ ITERATIONS.times do
 		find_element_by_css("a.button-secondary").click
 
 		# wait for the body to load and pull it
-		wait_for_element_by_css "div.content"
-		candidate_info["resume_text"] = '"' + find_element_by_css("div.content").text + '"'
+		wait_for_element_by_css "div#primary-content"
+		candidate_info["resume_text"] = '"' + find_element_by_css("div#primary-content").text + '"'
 
 		# output in Compas-recognized .csv format
 		output_csv.write(candidate_info["first_name"] + "," +
@@ -220,7 +235,8 @@ ITERATIONS.times do
 
 		profiles_saved += 1
 		puts candidate_info["first_name"] + " saved"
-		sleep_for_interval(10, 35)
+
+		if PAUSE then sleep_for_interval(10, 35) end
 
 	rescue Exception => e
 		if(candidate_info["first_name"] != nil)
@@ -228,10 +244,13 @@ ITERATIONS.times do
 			puts candidate_info["first_name"] + ": " + e.to_s
 		else
 			# lift name from URL and output with error
+			puts "247"
 			puts $driver.current_url.match(/[^\/]*$/)[0] + ": " + e.to_s
+			puts "249"
 		end
 
-		sleep_for_interval(3, 8)
+		if PAUSE then sleep_for_interval(3, 8) end
+
 	end
 
 end
